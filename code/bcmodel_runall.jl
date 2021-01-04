@@ -16,8 +16,8 @@ global nurseryx = 40 #1#69 #125 # the horizontal limiter on the space for spawn 
 global nurseryy = 40 # the vertical limiter on the space for spawn re-entry
 println("Initialized.")
 
-global temps_all = CSV.read("model_temps.csv") # the observed temp at each grid cell
-global salt_all = CSV.read("model_salt.csv") # the observed salt at each grid cell
+global temps_all = CSV.read("input/model_temps.csv") # the observed temp at each grid cell
+global salt_all = CSV.read("input/model_salt.csv") # the observed salt at each grid cell
 
 println("Read data.")
 
@@ -167,7 +167,7 @@ function bay_step!(bay)
 
                     twoDpos = node
                     splice!(bay.space.agent_positions[twoDpos],
-                      findfirst(a->a==crab.id, bay.space.agent_positions[twoDpos])))
+                      findfirst(a->a==crab.id, bay.space.agent_positions[twoDpos]))
                 # under stressful conditions, we have a different threshold for mortality
                 elseif (crab.salt < lowSalt) & (crab.temp < lowTemp) & (randnumber <= (0.25 / 365))
                     delete!(bay.agents, crab.id)
@@ -422,45 +422,48 @@ function agent_step_2d!(agent, model)
 end
 
 
-global initialcrabs = 20000;
-global datecurr = "29Aug20"
+global initialcrabs = 100000;
+global datecurr = "1Jan21_iterates"
 Pkg.add("DataFrames")
 using DataFrames
 using Random
 
 ccsimmax = 2192
-global temps_trunc = CSV.read("model_temps_truncated.csv")[:,1:(150*1460)]
-global salts_trunc = CSV.read("model_salts_truncated.csv")[:,1:(150*1460)]
-global temps = hcat(temps_trunc, CSV.read("model_temps_climatechange.csv")[:,1:(150*ccsimmax)],makeunique=true)
-global salt = hcat(salts_trunc, CSV.read("model_salts_truncated.csv")[:,1:(150*ccsimmax)],makeunique=true)
+global temps_trunc = CSV.read("input/model_temps_truncated.csv")[:,1:(150*1460)]
+global salts_trunc = CSV.read("input/model_salts_truncated.csv")[:,1:(150*1460)]
+global temps = hcat(temps_trunc, temps_trunc, temps_trunc, temps_trunc,
+    CSV.read("input/model_temps_climatechange.csv")[:,1:(150*ccsimmax)],makeunique=true)
+global salt = hcat(salts_trunc,salts_trunc,salts_trunc,salts_trunc,
+    CSV.read("input/model_salts_truncated.csv")[:,1:(150*ccsimmax)],makeunique=true)
 
 model = crab_model_2D(;M = initialcrabs)
 agent_properties = [:id, :pos, :temp, :simTime, :age, :sex, :mated, :eggs, :size, :numSperm, :degreeDays, :tOpt, :lifespan]
 numdays = Int(round(length(temps[1,:]) / 150, digits=0)-1)
-data = step!(model, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,numdays],replicates=3,parallel=true,step0=true) 
+steps_to_do = range(0,stop=numdays,step=30)
+data = step!(model, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,36003000,3200,3400,3600,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,numdays],replicates=3,parallel=true,step0=true) 
 
-CSV.write(string("climatechangetemps__",datecurr,"_slurm_finaltemponly_",string(initialcrabs),".csv"),data)
+CSV.write(string("output/climatechangetemps__",datecurr,"_slurm_finaltemponly_",string(initialcrabs),".csv"),data)
 
-global salt = hcat(salts_trunc, CSV.read("model_salts_climatechange.csv")[:,1:(150*ccsimmax)],makeunique=true)
+#global salt = hcat(salts_trunc, CSV.read("model_salts_climatechange.csv")[:,1:(150*ccsimmax)],makeunique=true)
 model = crab_model_2D(;M = initialcrabs)
 agent_properties = [:id, :pos, :temp, :simTime, :age, :sex, :mated, :eggs, :size, :numSperm, :degreeDays, :tOpt, :lifespan]
 numdays = Int(round(length(temps[1,:]) / 150, digits=0)-1)
-data = step!(model, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,36003000,3200,3400,3600,numdays],replicates=3,parallel=true,step0=true) 
+data = step!(model, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,36003000,3200,3400,3600,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,numdays],replicates=3,parallel=true,step0=true) 
 
-CSV.write(string("climatechangetemps_",datecurr,"_slurm_finaltempandsalt_",string(initialcrabs),".csv"),data)
+CSV.write(string("output/climatechangetemps_",datecurr,"_slurm_finaltempandsalt_",string(initialcrabs),".csv"),data)
 
-global temps = hcat(temps_trunc, CSV.read("model_temps_truncated.csv")[:,1:(150*ccsimmax)], makeunique=true)
-global salt = hcat(salts_trunc, CSV.read("model_salts_truncated.csv")[:,1:(150*ccsimmax)],makeunique=true)
+#global temps = hcat(temps_trunc, CSV.read("model_temps_truncated.csv")[:,1:(150*ccsimmax)], makeunique=true)
+#global salt = hcat(salts_trunc, CSV.read("model_salts_truncated.csv")[:,1:(150*ccsimmax)],makeunique=true)
 
 model2 = crab_model_2D(;M = initialcrabs)
-data2 = step!(model2, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,numdays],replicates=3,parallel=true,step0=true) 
+data2 = step!(model2, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,36003000,3200,3400,3600,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,numdays],replicates=3,parallel=true,step0=true) 
 
-CSV.write(string("normaltruncatedtemps_",datecurr,"_slurm_final_",string(initialcrabs),".csv"),data2)
+CSV.write(string("output/normaltruncatedtemps_",datecurr,"_slurm_final_",string(initialcrabs),".csv"),data2)
 
-global salt = hcat(salts_trunc, CSV.read("model_salts_climatechange.csv")[:,1:(150*ccsimmax)],makeunique=true)
+#global salt = hcat(salts_trunc, CSV.read("model_salts_climatechange.csv")[:,1:(150*ccsimmax)],makeunique=true)
 model = crab_model_2D(;M = initialcrabs)
 agent_properties = [:id, :pos, :temp, :simTime, :age, :sex, :mated, :eggs, :size, :numSperm, :degreeDays, :tOpt, :lifespan]
 numdays = Int(round(length(temps[1,:]) / 150, digits=0)-1)
-data = step!(model, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,numdays],replicates=3,parallel=true,step0=true) 
+data = step!(model, agent_step_2d!, bay_step!, numdays, agent_properties, when =[50,100,150,160,170,180,190,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,36003000,3200,3400,3600,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,numdays],replicates=3,parallel=true,step0=true) 
 
-CSV.write(string("climatechangetemps_",datecurr,"_slurm_finalsaltonly_",string(initialcrabs),".csv"),data)
+CSV.write(string("output/climatechangetemps_",datecurr,"_slurm_finalsaltonly_",string(initialcrabs),".csv"),data)
